@@ -32,6 +32,22 @@ from the request `Host` header, SSR + ISR.
 - **Headless Chrome `--window-size` does not reliably set layout width.** For responsive checks,
   render the page in a fixed-width `<iframe>` in a probe page and screenshot that.
 - `NEXT_PUBLIC_API_URL` points at **`:4001`** locally, not 4000.
+- **`typecheck` runs `next typegen` first.** `PageProps`/`LayoutProps` are generated globals; without
+  `.next/` (fresh clone, devflow slot, CI) plain `tsc` fails.
+- **Browser tests run against a production build** (`npm run start:test`) on port 3090, or the slot's
+  port, never the dev server. Expect a `next build` on every `test:e2e` / `test:visual` run.
+- **Visual baselines** live in `e2e/visual/*-snapshots/` and are macOS-only; CI skips them.
+
+## Commands
+
+```bash
+npm run dev          # next dev, port 3000 (or $PORT)
+npm run typecheck    # next typegen && tsc
+npm run lint         # eslint
+npm run tokens       # invariant 3 grep + no arbitrary colour/px classes
+npm run test:e2e     # Playwright browser tests
+npm run test:visual  # screenshots at 375/768/1280 vs the approved baselines
+```
 
 ## Temporary, delete later
 
