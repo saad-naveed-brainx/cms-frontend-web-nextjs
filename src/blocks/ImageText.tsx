@@ -12,7 +12,7 @@ export function ImageText({ block }: { block: ImageTextBlock }) {
             imagePosition === 'right' ? 'lg:order-2' : ''
           }`}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element -- fixture SVGs; next/image lands with the media library */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- plain <img> until next/image lands with the media library */}
           <img src={image.src} alt={image.alt} className="block h-full w-full object-cover" />
           {image.caption ? (
             <figcaption className="border-t border-[var(--site-line)] bg-[var(--site-surface)] px-4 py-3 font-[family-name:var(--site-font-utility)] text-xs tracking-[0.08em] text-[var(--site-muted)]">

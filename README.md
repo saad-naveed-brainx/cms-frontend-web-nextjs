@@ -41,7 +41,8 @@ DEFAULT_TENANT_HOST="localhost:3000"   # fallback tenant for local dev
 src/blocks/         block types, registry, renderer, and one component per block
 src/theme/          SiteTheme type, presets, and the CSS-variable wrapper
 src/site/           header, footer, and the whole-site composition
-src/fixtures/       two demo tenants standing in for rows in `content`
+src/lib/            the API client the pages are drawn from
+src/app/            one catch-all route that draws every tenant site
 ```
 
 **The contract:** a block component may reference `--site-*` custom properties
@@ -53,26 +54,29 @@ This is enforceable in review with a grep:
 grep -rnE '#[0-9a-fA-F]{3,8}\b' src/blocks src/site      # must return nothing
 ```
 
-`/` renders both tenants with a control that swaps their themes. If a block ever
-hardcodes a colour, swapping shows it immediately.
+A site's theme is stored on the site (`sites.theme`, empty for a new site) and laid over
+a default one when the page is drawn (`src/site/resolve-theme.ts`), so every block is
+restyled by the stored theme alone. If a block ever hardcodes a colour, a themed site
+shows it immediately.
 
 **Adding a block:** add its type to the `Block` union in `blocks/types.ts`, write
 the component, and register it in `blocks/registry.ts`. The registry is typed as
 `{ [T in BlockType]: BlockDefinition<T> }`, so a type without a component — or a
 component without a type — is a compile error rather than a blank section.
 
-**Routes:** `/preview/[site]` renders one tenant by slug. The real route resolves
-a tenant from the request host; the preview exists so block and theme work can
-proceed before host resolution and the database are wired up.
+**Routes:** `src/app/[[...path]]/page.tsx` draws every tenant site: the site comes
+from the request host, the page from the path (`/` is the page at `/home`), both
+read from the API's public route. In development open a site at
+`http://<name>.localhost:3000/`.
 
 ## Notes
 
 - Tailwind CSS 4 via `@tailwindcss/postcss`.
-- Block components are colour-agnostic by rule (see above); tenant palettes live
-  in `src/fixtures/*` today and move to the `sites` table later.
-- Fixture artwork in `public/media/` is hand-written SVG, so there are no binary
-  assets and no remote image hosts to configure yet. `next/image` arrives with
-  the media library.
+- Block components are colour-agnostic by rule (see above); tenant palettes are
+  stored with each site and read from the API.
+- Sample artwork in `public/media/` is hand-written SVG, used by the tests' sample
+  sites, so there are no binary assets and no remote image hosts to configure yet.
+  `next/image` arrives with the media library.
 - Blocks are intended to be React components shared between the editor canvas in
   `cms-admin` and this renderer, so preview is exact rather than approximate.
   Since the projects are separate repos, that sharing happens through a

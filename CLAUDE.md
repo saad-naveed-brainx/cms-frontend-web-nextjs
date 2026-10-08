@@ -5,8 +5,8 @@
 Platform-wide guide and docs: **[../CLAUDE.md](../CLAUDE.md)** and **[../docs/](../docs/)**.
 Read those first; this file covers only what is specific to this repo.
 
-Next.js 16 App Router. Renders **all public tenant sites**: one catch-all route, tenant resolved
-from the request `Host` header, SSR + ISR.
+Next.js 16 App Router. Renders **all public tenant sites**: one optional catch-all route
+(`src/app/[[...path]]/page.tsx`), tenant resolved from the request `Host` header, server-rendered.
 
 ## Invariants for this repo
 
@@ -20,10 +20,38 @@ from the request `Host` header, SSR + ISR.
    Test with two hosts.
 5. **Never sanitise on read.** Stored HTML was sanitised on write.
 6. An unknown block type is skipped, not thrown on — a page saved with a block a later deploy
-   removed must still render the rest of itself.
+   removed must still render the rest of itself. `src/blocks/parse-blocks.ts` reads every stored block
+   field by field before anything is drawn: a block it cannot read, or a link or image address that is
+   not safe (`javascript:`), is left out and the rest of the page shows. `richText` is **not drawn at
+   all** until the API cleans HTML on save (BLK-05, `../docs/DECISIONS.md` D-021): nothing sanitises
+   stored HTML yet, so it cannot be trusted as markup.
+
+## How a page is drawn
+
+The route reads the `Host` header and the path, asks the API's public route (`GET /public/site?host=&path=`,
+`src/lib/public-api.ts`) and draws what comes back: `src/site/to-site-view.ts` turns the answer into a
+`SiteView`, `src/site/resolve-theme.ts` lays the site's stored theme over `DEFAULT_THEME` (a new site's
+theme is `{}`, so it shows the default; every missing or invalid choice falls back), `SiteChrome` draws it.
+A site, a page, a draft and an unpublished page that is not there are all `notFound()` (a real 404); an API
+that cannot answer throws, which is `error.tsx` (a 500). Nothing is cached yet: the page reads the host, so
+it is drawn fresh every visit, and there is no cache key to get wrong (invariant 4 starts to matter the
+day one is added). `NEXT_PUBLIC_API_URL` is where the server finds the API.
 
 ## Gotchas
 
+- **Visit a site at `<name>.localhost:3000`.** Create the site in the admin with the web address
+  `cafe.localhost`, then open `http://cafe.localhost:3000/`. Chrome and Firefox send every `*.localhost`
+  to this machine (Safari does not). `next.config.ts` allows `*.localhost` for the dev server
+  (`allowedDevOrigins`). `http://localhost:3000` itself has no site, so it is a 404 page.
+- **Three kinds of browser test.** `e2e` needs no API (the site is pointed at an address nothing listens
+  on, so "the API is down" is real) and is what GitHub CI runs. `flow` is the real thing: it starts the
+  **api repo** (`../api`) on its own port (`DEVFLOW_PORT_API` + 600) and database (`cms_wt<N>_webflow`),
+  makes the owner with the real seed command, and each test makes its own sites and pages through the real
+  API and visits them at `<name>.localhost`. It needs the api repo beside this one (in a slot:
+  `devflow-wt new <slug> api web`) and is not in CI yet (backlog B-26). `visual` is macOS screenshots of two
+  real sites (made through the same API, on fixed addresses). Nothing in the API sets a theme yet, so
+  `e2e/flow/support.ts` writes it to the database with `psql` before a site's first visit. The sample
+  sites live only in `e2e/support/sample-sites.ts`; `public/media/*.svg` are the sample images they use.
 - **`turbopack.root` must stay set** in `next.config.ts`, or Turbopack walks up past this repo and
   warns about a lockfile outside it.
 - **`.gitignore` ignores `.env*`**, so the `!.env.example` negation is required.
@@ -35,7 +63,7 @@ from the request `Host` header, SSR + ISR.
 - **`typecheck` runs `next typegen` first.** `PageProps`/`LayoutProps` are generated globals; without
   `.next/` (fresh clone, devflow slot, CI) plain `tsc` fails.
 - **Browser tests run against a production build** (`npm run start:test`) on port 3090, or the slot's
-  port, never the dev server. Expect a `next build` on every `test:e2e` / `test:visual` run.
+  port, never the dev server. Expect a `next build` on every `test:e2e` / `test:flow` / `test:visual` run.
 - **Visual baselines** live in `e2e/visual/*-snapshots/` and are macOS-only; CI skips them.
 
 ## Commands
@@ -45,12 +73,7 @@ npm run dev          # next dev, port 3000 (or $PORT)
 npm run typecheck    # next typegen && tsc
 npm run lint         # eslint
 npm run tokens       # invariant 3 grep + no arbitrary colour/px classes
-npm run test:e2e     # Playwright browser tests
-npm run test:visual  # screenshots at 375/768/1280 vs the approved baselines
+npm run test:e2e     # browser tests with no API (what CI runs)
+npm run test:flow    # the real flow: starts ../api on its own database, makes sites and pages, visits them
+npm run test:visual  # screenshots of two real sites at 375/768/1280 vs the approved baselines
 ```
-
-## Temporary, delete later
-
-`src/app/page.tsx` (two-tenant comparison view) and `src/app/preview/[site]/` exist only until the
-real host-resolved catch-all route lands (`CNT-07`). Tracked as `../docs/BACKLOG.md` B-07.
-Fixtures in `src/fixtures/` stand in for rows in `content`.

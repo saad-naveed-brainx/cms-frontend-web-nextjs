@@ -6,8 +6,8 @@
 # 2. Anywhere in components: no arbitrary Tailwind colour (`bg-[#fff]`) or pixel value (`p-[13px]`).
 #    Use a token (`bg-[var(--site-surface)]`) or a Tailwind scale step instead.
 #
-# Colours are defined in exactly two places: tenant themes (src/fixtures, later the database) and
-# the dev shell's variables in src/app/globals.css.
+# Colours are defined in exactly three places: a site's stored theme (the database), the default theme
+# (src/site/default-theme.ts) and the shell's variables in src/app/globals.css.
 cd "$(dirname "$0")/.." || exit 2
 status=0
 
