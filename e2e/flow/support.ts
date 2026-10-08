@@ -14,20 +14,27 @@ export function asRgb(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/** SQL straight to the flow database, for what the API cannot do (yet) or refuses on purpose. */
+export function sql(statement: string) {
+  execFileSync('psql', [`postgresql://localhost:5432/${flowDatabase}`, '-v', 'ON_ERROR_STOP=1', '-q', '-c', statement]);
+}
+
+const literal = (value: object) => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
+
 /**
  * Nothing in the API sets a site's theme yet, so it is written straight to the database. It must
  * happen before the site's first visit: the API remembers what it knows about an address for a minute.
  */
 function setTheme(siteId: string, theme: object) {
-  const json = JSON.stringify(theme).replaceAll("'", "''");
-  execFileSync('psql', [
-    `postgresql://localhost:5432/${flowDatabase}`,
-    '-v',
-    'ON_ERROR_STOP=1',
-    '-q',
-    '-c',
-    `UPDATE sites SET theme = '${json}'::jsonb WHERE id = '${siteId}'`,
-  ]);
+  sql(`UPDATE sites SET theme = ${literal(theme)} WHERE id = '${siteId}'`);
+}
+
+/**
+ * Replaces a page's blocks in the database. The API refuses a rich-text block (its HTML is not safe
+ * to store until it is cleaned on save), so this is how one from before that rule is made.
+ */
+export function writeBlocks(pageId: string, blocks: object[]) {
+  sql(`UPDATE content SET blocks = ${literal(blocks)} WHERE id = '${pageId}'`);
 }
 
 /**

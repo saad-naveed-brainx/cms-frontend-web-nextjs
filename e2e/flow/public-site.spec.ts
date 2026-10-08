@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { corrick, kestrel } from '../support/sample-sites';
-import { siteUrl } from './env';
-import { asRgb, realApi, unique } from './support';
+import { flowApiUrl, siteUrl } from './env';
+import { owner } from './people';
+import { asRgb, realApi, unique, writeBlocks } from './support';
 
 /**
  * The public site on the REAL flow: a real browser, the real website, the real API and a real
@@ -99,18 +100,17 @@ test('[UC-RS-17] a block the site cannot draw is left out, and the rest of the p
   const api = await realApi(request);
   const token = unique();
   const made = await api.createSite('Robust Cafe', `robust-${token}.localhost`);
-  await made.publishPage({
-    slug: 'home',
-    title: 'Home',
-    blocks: [
-      { type: 'hero', headline: 'Still here' },
-      { type: 'hologram', note: 'a block type from the future' },
-      { type: 'hero' }, // no headline: cannot be drawn
-      { type: 'richText', html: '<p>Not drawn until stored HTML is cleaned on save</p><img src="x" onerror="alert(1)">' },
-      { type: 'cta', heading: 'Unsafe link', action: { label: 'Click', href: 'javascript:alert(1)' } },
-      { type: 'cta', heading: 'Real link', action: { label: 'Contact us', href: '/contact' } },
-    ],
-  });
+  const blocks = [
+    { type: 'hero', headline: 'Still here' },
+    { type: 'hologram', note: 'a block type from the future' },
+    { type: 'hero' }, // no headline: cannot be drawn
+    // From before the API refused rich text, so it is written to the database: stored HTML is not safe to draw.
+    { type: 'richText', html: '<p>Not drawn until stored HTML is cleaned on save</p><img src="x" onerror="alert(1)">' },
+    { type: 'cta', heading: 'Unsafe link', action: { label: 'Click', href: 'javascript:alert(1)' } },
+    { type: 'cta', heading: 'Real link', action: { label: 'Contact us', href: '/contact' } },
+  ];
+  const home = await made.publishPage({ slug: 'home', title: 'Home', blocks: blocks.filter((block) => block.type !== 'richText') });
+  writeBlocks(home.id, blocks);
   page.on('dialog', () => {
     throw new Error('a stored script ran');
   });
@@ -183,4 +183,45 @@ test('[UC-RS-20] the old demo addresses show a not-found page, on a real site an
     expect(response?.status(), url).toBe(404);
     await expect(notFoundPage(page), url).toBeVisible();
   }
+});
+
+test('[UC-RS-24] the finish line: sign in, create a site, create a home page with a hero, publish it, and the website shows its headline and the site name', async ({
+  page,
+  request,
+}) => {
+  const token = unique();
+  const host = `finish-${token}.localhost`;
+  const name = `Finish Cafe ${token}`;
+  const headline = `Welcome to ${name}`;
+
+  // The real API, in the order the admin uses it: sign in, create the site, create its home page.
+  const login = await request.post(`${flowApiUrl}/auth/login`, {
+    data: { email: owner.email, password: owner.password },
+  });
+  expect(login.status()).toBe(200);
+  const signedIn = { Authorization: `Bearer ${((await login.json()) as { accessToken: string }).accessToken}` };
+
+  const created = await request.post(`${flowApiUrl}/sites`, { headers: signedIn, data: { name, hostnames: [host] } });
+  expect(created.status()).toBe(201);
+  const siteHeaders = { ...signedIn, 'X-Site-Id': ((await created.json()) as { site: { id: string } }).site.id };
+
+  const drafted = await request.post(`${flowApiUrl}/content`, {
+    headers: siteHeaders,
+    data: { type: 'page', title: 'Home', slug: 'home', blocks: [{ type: 'hero', headline }] },
+  });
+  expect(drafted.status()).toBe(201);
+  const home = (await drafted.json()) as { id: string };
+
+  // Until it is published, the address shows nothing.
+  expect((await page.goto(siteUrl(host)))?.status()).toBe(404);
+
+  const published = await request.post(`${flowApiUrl}/content/${home.id}/publish`, { headers: siteHeaders });
+  expect(published.status()).toBe(200);
+
+  // Then the website draws it: the headline, the site's name, a title that names both.
+  const response = await page.goto(siteUrl(host));
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(headline);
+  await expect(page.locator('header').getByRole('link', { name })).toBeVisible();
+  await expect(page).toHaveTitle(`Home — ${name}`);
 });
