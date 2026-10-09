@@ -41,6 +41,10 @@ that cannot answer throws, which is `error.tsx` (a 500). Nothing is cached yet: 
 it is drawn fresh every visit, and there is no cache key to get wrong (invariant 4 starts to matter the
 day one is added). `NEXT_PUBLIC_API_URL` is where the server finds the API.
 
+**Blog pages** (`../docs/DECISIONS.md` D-031): at a type's own address with no page there (`/blog`), the API answers
+`kind: 'listing'` and the route draws `PostList` inside `SiteChrome` (its `children` replace the blocks): the type's
+published items newest first, ten at a time, `?page=2` for older ones. The menu gains `Posts` once one is published.
+
 **Preview links** (`../docs/DECISIONS.md` D-029): with `?preview=<token>` on any path, the route asks
 `GET /public/preview?host=&token=` instead (`getPreview`) and draws the page the link names, as last saved and
 whatever its status, under a `PreviewBar` (inside the theme, `SiteChrome`'s `banner`), with `noindex, nofollow`;
@@ -74,7 +78,11 @@ the path is not used. A link the API refuses (401) is `PreviewExpired`; a good l
   `.next/` (fresh clone, devflow slot, CI) plain `tsc` fails.
 - **Browser tests run against a production build** (`npm run start:test`) on port 3090, or the slot's
   port, never the dev server. Expect a `next build` on every `test:e2e` / `test:flow` / `test:visual` run.
-- **Visual baselines** live in `e2e/visual/*-snapshots/` and are macOS-only; CI skips them.
+- **Visual baselines** live in `e2e/visual/*-snapshots/` and are macOS-only; CI skips them. After one fails, Playwright
+  restarts the worker and `beforeAll` tries to create the fixed sites again (a 409): record new baselines with
+  `--update-snapshots` rather than reading the second error.
+- **No Prettier config in this repo.** The code is single quotes, semicolons, 110 columns: format with
+  `npx prettier --single-quote --print-width 110`, never the defaults (they rewrite every quote).
 
 ## Commands
 
