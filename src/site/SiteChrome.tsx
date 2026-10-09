@@ -8,17 +8,23 @@ import type { SiteView } from './types';
 /**
  * A whole tenant site: theme scope, header and footer from site settings, and
  * the page's blocks in between. Nothing here reads a global colour, so any theme
- * can be laid over the same components.
+ * can be laid over the same components. `banner` sits above the header, inside the
+ * theme (the preview strip); `children` replaces the blocks (the blog page's list).
  */
-/** `banner` sits above the header, inside the theme: the preview strip uses it. */
-export function SiteChrome({ site, banner }: { site: SiteView; banner?: ReactNode }) {
+export function SiteChrome({
+  site,
+  banner,
+  children,
+}: {
+  site: SiteView;
+  banner?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
     <SiteThemeRoot theme={site.settings.theme} className="flex min-h-full flex-col">
       {banner}
       <SiteHeader settings={site.settings} />
-      <main className="flex-1">
-        <BlockRenderer blocks={site.page.blocks} />
-      </main>
+      <main className="flex-1">{children ?? <BlockRenderer blocks={site.page.blocks} />}</main>
       <SiteFooter settings={site.settings} />
     </SiteThemeRoot>
   );

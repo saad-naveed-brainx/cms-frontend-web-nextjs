@@ -1,5 +1,5 @@
 import { parseBlocks } from '@/blocks/parse-blocks';
-import type { PublicSite } from '@/lib/public-api';
+import type { PublicListing, PublicSite } from '@/lib/public-api';
 import { resolveTheme } from './resolve-theme';
 import type { SiteView } from './types';
 
@@ -9,7 +9,30 @@ import type { SiteView } from './types';
  * note) are not read yet: nothing can set them until site settings have a screen.
  */
 export function toSiteView(data: PublicSite): SiteView {
-  const nav = data.navigation.map(({ title, path }) => ({ label: title, href: path }));
+  return frameView(data, {
+    path: data.page.path,
+    title: data.page.title,
+    blocks: parseBlocks(data.page.blocks),
+  });
+}
+
+/** A blog page: the site's frame around the list, which `PostList` draws (it has no blocks). */
+export function toListingView(data: PublicListing): SiteView {
+  return frameView(data, {
+    path: data.listing.path,
+    title: data.listing.title,
+    blocks: [],
+  });
+}
+
+function frameView(
+  data: Pick<PublicSite, 'site' | 'canonicalHost' | 'navigation'>,
+  page: SiteView['page'],
+): SiteView {
+  const nav = data.navigation.map(({ title, path }) => ({
+    label: title,
+    href: path,
+  }));
 
   return {
     settings: {
@@ -17,13 +40,12 @@ export function toSiteView(data: PublicSite): SiteView {
       tagline: '',
       host: data.canonicalHost,
       nav,
-      footer: { note: '', groups: nav.length > 0 ? [{ title: 'Pages', links: nav }] : [] },
+      footer: {
+        note: '',
+        groups: nav.length > 0 ? [{ title: 'Pages', links: nav }] : [],
+      },
       theme: resolveTheme(data.site.theme),
     },
-    page: {
-      path: data.page.path,
-      title: data.page.title,
-      blocks: parseBlocks(data.page.blocks),
-    },
+    page,
   };
 }
