@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { BlockRenderer } from '@/blocks/BlockRenderer';
 import { SiteThemeRoot } from '@/theme/SiteThemeRoot';
 import { SiteFooter } from './SiteFooter';
@@ -9,9 +10,11 @@ import type { SiteView } from './types';
  * the page's blocks in between. Nothing here reads a global colour, so any theme
  * can be laid over the same components.
  */
-export function SiteChrome({ site }: { site: SiteView }) {
+/** `banner` sits above the header, inside the theme: the preview strip uses it. */
+export function SiteChrome({ site, banner }: { site: SiteView; banner?: ReactNode }) {
   return (
     <SiteThemeRoot theme={site.settings.theme} className="flex min-h-full flex-col">
+      {banner}
       <SiteHeader settings={site.settings} />
       <main className="flex-1">
         <BlockRenderer blocks={site.page.blocks} />
