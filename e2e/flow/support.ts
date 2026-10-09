@@ -22,14 +22,6 @@ export function sql(statement: string) {
 const literal = (value: object) => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 
 /**
- * Nothing in the API sets a site's theme yet, so it is written straight to the database. It must
- * happen before the site's first visit: the API remembers what it knows about an address for a minute.
- */
-function setTheme(siteId: string, theme: object) {
-  sql(`UPDATE sites SET theme = ${literal(theme)} WHERE id = '${siteId}'`);
-}
-
-/**
  * Replaces a page's blocks in the database. The API refuses a rich-text block (its HTML is not safe
  * to store until it is cleaned on save), so this is how one from before that rule is made.
  */
@@ -88,7 +80,7 @@ export async function realApi(request: APIRequestContext) {
   const { accessToken } = (await login.json()) as { accessToken: string };
   const signedIn = { Authorization: `Bearer ${accessToken}` };
 
-  /** The handle of one site: make, publish and unpublish pages on it. */
+  /** The handle of one site: make, publish and unpublish pages on it, and set how it looks. */
   function site(siteId: string, host: string) {
     const headers = { ...signedIn, 'X-Site-Id': siteId };
     return {
@@ -116,6 +108,14 @@ export async function realApi(request: APIRequestContext) {
         expect(response.status(), 'asking for a preview link').toBe(200);
         return ((await response.json()) as { token: string }).token;
       },
+      /**
+       * The site's name, header tagline, footer note or whole theme, saved through the real route the
+       * admin's Appearance screen uses (GOV-04), which also tells the website to forget the site.
+       */
+      async setAppearance(data: { name?: string; tagline?: string; footerNote?: string; theme?: object }) {
+        const response = await request.patch(`${flowApiUrl}/appearance`, { headers, data });
+        expect(response.status(), 'saving the appearance').toBe(200);
+      },
       /** A page made and published in one go. */
       async publishPage(data: PageData) {
         const page = await this.createPage(data);
@@ -127,8 +127,8 @@ export async function realApi(request: APIRequestContext) {
 
   return {
     /**
-     * A new site in the owner's organisation, with no pages and no theme, on one address or several
-     * (the first is its main address, which `host` names).
+     * A new site in the owner's organisation, with no pages, on one address or several (the first is
+     * its main address, which `host` names), with the theme given (through the real API) or none.
      */
     async createSite(name: string, hosts: string | string[], theme?: object) {
       const hostnames = typeof hosts === 'string' ? [hosts] : hosts;
@@ -138,8 +138,9 @@ export async function realApi(request: APIRequestContext) {
       });
       expect(response.status(), `creating the site on ${hostnames[0]}`).toBe(201);
       const created = (await response.json()) as { site: { id: string } };
-      if (theme) setTheme(created.site.id, theme);
-      return site(created.site.id, hostnames[0]);
+      const made = site(created.site.id, hostnames[0]);
+      if (theme) await made.setAppearance({ theme });
+      return made;
     },
 
     /** A sample site made the real way: created on `host`, themed, every page made and published. */

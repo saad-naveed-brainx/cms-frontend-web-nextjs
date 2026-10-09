@@ -52,6 +52,12 @@ tagged answer is dropped at once (`revalidateTag(tag, { expire: 0 })`). **Cachin
 `kind: 'listing'` and the route draws `PostList` inside `SiteChrome` (its `children` replace the blocks): the type's
 published items newest first, ten at a time, `?page=2` for older ones. The menu gains `Posts` once one is published.
 
+**Appearance** (GOV-04, `../docs/DECISIONS.md` D-036): the header's tagline and the footer's note come from the site's
+`settings` (`tagline`, `footerNote`), saved with its name and theme on the admin's Appearance screen. The ready-made palettes
+are `src/site/palettes.ts` (the first is the default theme's), each passing the contrast checks in `e2e/palettes.spec.ts`
+(text pairs and the accent at least 4.5:1, `src/site/contrast.ts`); the admin copies both for its screen. They live in
+`src/site`, not `src/theme`, because blocks and the theme may hold no colour (invariant 3).
+
 **Preview links** (`../docs/DECISIONS.md` D-029): with `?preview=<token>` on any path, the route asks
 `GET /public/preview?host=&token=` instead (`getPreview`) and draws the page the link names, as last saved and
 whatever its status, under a `PreviewBar` (inside the theme, `SiteChrome`'s `banner`), with `noindex, nofollow`;
@@ -79,8 +85,8 @@ the same answer:** a `loading.tsx` or a Suspense boundary around the page lets N
   makes the owner with the real seed command, and each test makes its own sites and pages through the real
   API and visits them at `<name>.localhost`. It needs the api repo beside this one (in a slot:
   `devflow-wt new <slug> api web`) and is not in CI yet (backlog B-26). `visual` is macOS screenshots of two
-  real sites (made through the same API, on fixed addresses). Nothing in the API sets a theme yet, so
-  `e2e/flow/support.ts` writes it to the database with `psql` before a site's first visit. The sample
+  real sites (made through the same API, on fixed addresses). A site's theme is saved through the real
+  `PATCH /appearance` (`setAppearance` in `e2e/flow/support.ts`, GOV-04). The sample
   sites live only in `e2e/support/sample-sites.ts`; `public/media/*.svg` are the sample images they use.
 - **`turbopack.root` must stay set** in `next.config.ts`, or Turbopack walks up past this repo and
   warns about a lockfile outside it.
