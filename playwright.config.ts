@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
-import { baseURL, downApiUrl, flowApiPort, flowApiUrl, flowDatabase, webPort } from './e2e/flow/env';
+import {
+  baseURL,
+  downApiUrl,
+  flowApiPort,
+  flowApiUrl,
+  flowDatabase,
+  revalidateSecret,
+  webPort,
+} from './e2e/flow/env';
 import { owner, ownerTenant } from './e2e/flow/people';
 
 /**
@@ -50,7 +58,12 @@ export default defineConfig({
       command: 'npm run start:test',
       // A file route answers 200 on any address; the site's own pages would be a 404 or an error here.
       url: `${baseURL}/favicon.ico`,
-      env: { PORT: String(webPort), NEXT_PUBLIC_API_URL: realApi ? flowApiUrl : downApiUrl },
+      // The website caches, as in production: the API below tells it what to forget.
+      env: {
+        PORT: String(webPort),
+        NEXT_PUBLIC_API_URL: realApi ? flowApiUrl : downApiUrl,
+        REVALIDATE_SECRET: revalidateSecret,
+      },
       reuseExistingServer: false,
       timeout: 180_000,
     },
@@ -64,6 +77,8 @@ export default defineConfig({
               FLOW_API_PORT: String(flowApiPort),
               FLOW_OWNER: JSON.stringify(owner),
               FLOW_TENANT: JSON.stringify(ownerTenant),
+              WEB_REVALIDATE_URL: `${baseURL}/api/revalidate`,
+              REVALIDATE_SECRET: revalidateSecret,
             },
             reuseExistingServer: false,
             // Build, migrate, create the owner, start: about half a minute.

@@ -11,7 +11,15 @@ export const baseURL = `http://127.0.0.1:${webPort}`;
 
 export const flowApiPort = apiPort + 600;
 export const flowApiUrl = `http://127.0.0.1:${flowApiPort}`;
-export const flowDatabase = process.env.DEVFLOW_SLOT ? `cms_wt${process.env.DEVFLOW_SLOT}_webflow` : 'cms_webflow';
+export const flowDatabase = process.env.DEVFLOW_SLOT
+  ? `cms_wt${process.env.DEVFLOW_SLOT}_webflow`
+  : 'cms_webflow';
+
+/**
+ * The secret the website and the flow tests' API share, so the API can tell the website to forget a
+ * site's cached pages (CNT-08). With it set, the website caches, as in production.
+ */
+export const revalidateSecret = 'flow-tests-only-revalidate-secret';
 
 /** Nothing listens here: it is where the site looks for the API when the real one is not started, so "the API is down" is real. */
 export const downApiUrl = `http://127.0.0.1:${apiPort + 700}`;
