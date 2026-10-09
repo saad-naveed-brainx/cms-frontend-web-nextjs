@@ -13,7 +13,11 @@ Next.js 16 App Router. Renders **all public tenant sites**: one optional catch-a
 1. **Server-rendered, deliberately.** The SEO surface — meta titles, canonical URLs, sitemaps,
    no-index — is only real if the server returns real HTML. Tenant pages stay server components.
    Page source will be inspected during the pitch.
-2. **Block components come from `cms-blocks`**, never a local copy. See `../docs/DECISIONS.md` D-008.
+2. **This repo is the original of every block component and the theme** (`src/blocks`, `src/theme`, and the
+   helpers they import). The admin keeps an exact copy for its live preview: after changing them here, run
+   `npm run blocks:sync` in `../admin` and commit both. Its gate fails while the copy differs
+   (`../docs/DECISIONS.md` D-030, superseding D-008's package). Styling a block needs beyond Tailwind's
+   utilities goes in `src/theme/site.css`, not `app/globals.css`, so it travels with the copy.
 3. **Blocks are colour-agnostic**: `--site-*` custom properties only, no hex values and no Tailwind
    palette classes. Verify: `grep -rnE '#[0-9a-fA-F]{3,8}\b' src/blocks src/theme` → nothing.
 4. **ISR cache keys must include the host.** A key on path alone serves tenant A's page to tenant B.
