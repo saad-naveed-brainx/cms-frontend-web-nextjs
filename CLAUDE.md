@@ -20,8 +20,9 @@ Next.js 16 App Router. Renders **all public tenant sites**: one optional catch-a
    utilities goes in `src/theme/site.css`, not `app/globals.css`, so it travels with the copy.
 3. **Blocks are colour-agnostic**: `--site-*` custom properties only, no hex values and no Tailwind
    palette classes. Verify: `grep -rnE '#[0-9a-fA-F]{3,8}\b' src/blocks src/theme` → nothing.
-4. **ISR cache keys must include the host.** A key on path alone serves tenant A's page to tenant B.
-   Test with two hosts.
+4. **Cache keys must include the host.** A key on path alone serves tenant A's page to tenant B. The API's
+   answers are cached with `fetch` `force-cache`, keyed by the whole request address (host and path are in
+   its query) and tagged `site:<host>` (`src/lib/site-cache.ts`, D-032). Test with two hosts.
 5. **Never sanitise on read.** Stored HTML was sanitised on write.
 6. An unknown block type is skipped, not thrown on — a page saved with a block a later deploy
    removed must still render the rest of itself. `src/blocks/parse-blocks.ts` reads every stored block
@@ -37,9 +38,15 @@ The route reads the `Host` header and the path, asks the API's public route (`GE
 `SiteView`, `src/site/resolve-theme.ts` lays the site's stored theme over `DEFAULT_THEME` (a new site's
 theme is `{}`, so it shows the default; every missing or invalid choice falls back), `SiteChrome` draws it.
 A site, a page, a draft and an unpublished page that is not there are all `notFound()` (a real 404); an API
-that cannot answer throws, which is `error.tsx` (a 500). Nothing is cached yet: the page reads the host, so
-it is drawn fresh every visit, and there is no cache key to get wrong (invariant 4 starts to matter the
-day one is added). `NEXT_PUBLIC_API_URL` is where the server finds the API.
+that cannot answer throws, which is `error.tsx` (a 500). `NEXT_PUBLIC_API_URL` is where the server finds the API.
+
+**Caching** (CNT-08, `../docs/DECISIONS.md` D-032): the page is drawn on every visit (it reads the host), but the
+API's answer is kept for up to five minutes, keyed by the whole request address and tagged `site:<host>`; only
+200 answers are kept, so a "not found" is always asked afresh. The API POSTs a site's addresses to
+`/api/revalidate` (with `REVALIDATE_SECRET`) after a publish, an unpublish or a change to a live page, and every
+tagged answer is dropped at once (`revalidateTag(tag, { expire: 0 })`). **Caching is on only when
+`REVALIDATE_SECRET` is set**; without it every answer is fresh. Previews are never cached. `start:test` clears
+`.next/cache/fetch-cache`, so one test run never sees another's answers.
 
 **Blog pages** (`../docs/DECISIONS.md` D-031): at a type's own address with no page there (`/blog`), the API answers
 `kind: 'listing'` and the route draws `PostList` inside `SiteChrome` (its `children` replace the blocks): the type's

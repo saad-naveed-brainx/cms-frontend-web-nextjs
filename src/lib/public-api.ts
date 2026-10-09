@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { isRecord, isText } from './guards';
+import { cacheFor } from './site-cache';
 
 /**
  * The public side of the API: what a visitor's page is drawn from. The answer mirrors
@@ -99,15 +100,16 @@ function apiUrl(): string {
  * Throws when the API itself cannot answer, so the visitor gets an error page rather than a false
  * "not found".
  *
- * Asked fresh every time (no caching): a page that was just published or unpublished shows or
- * disappears at once. Within one request the page and its metadata share one call.
+ * Kept in the website's cache, per site address and page, until the API says the site changed
+ * (`src/lib/site-cache.ts`, CNT-08); asked fresh every time when caching is off. Within one request
+ * the page and its metadata share one call.
  */
 export const getPublicSite = cache(
   async (host: string, path: string, page?: string): Promise<PublicSite | PublicListing | null> => {
     const query = new URLSearchParams({ host, path });
     if (page !== undefined) query.set('page', page);
     const response = await fetch(`${apiUrl()}/public/site?${query}`, {
-      cache: 'no-store',
+      ...cacheFor(host),
       headers: { accept: 'application/json' },
       signal: AbortSignal.timeout(8_000),
     });
