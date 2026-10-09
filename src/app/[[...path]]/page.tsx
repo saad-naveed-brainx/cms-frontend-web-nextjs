@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { parseBlocks } from '@/blocks/parse-blocks';
 import { getPreview, getPublicSite } from '@/lib/public-api';
 import type { PublicListing, PublicSite } from '@/lib/public-api';
 import { PostList } from '@/site/PostList';
 import { PreviewBar } from '@/site/PreviewBar';
 import { PreviewExpired } from '@/site/PreviewExpired';
+import { listingMetadata, pageMetadata, siteOrigin } from '@/site/seo';
 import { SiteChrome } from '@/site/SiteChrome';
 import { toListingView, toSiteView } from '@/site/to-site-view';
 
@@ -28,8 +30,8 @@ type Found =
  * saved, whatever its status, and only at its own site's address; the path is not used. A link
  * the API refuses shows "expired".
  *
- * Reading the host makes this route dynamic: it is drawn fresh for every visit. Nothing is cached
- * here yet, so there is no cache key to get wrong (invariant 4 applies the day one is added).
+ * Reading the host makes this route dynamic: it is drawn fresh for every visit. The API's answer
+ * is cached per site address and page (`src/lib/site-cache.ts`, invariant 4).
  */
 async function lookUp({ params, searchParams }: Props): Promise<Found> {
   const host = (await headers()).get('host');
@@ -52,6 +54,10 @@ async function lookUp({ params, searchParams }: Props): Promise<Found> {
   return { kind: 'page', found, preview: null };
 }
 
+/**
+ * The `<head>`: what search engines and share cards read (SEO-01, `src/site/seo.ts`). A preview is
+ * a private link: never indexed, and it names no address and shows no share card.
+ */
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const answer = await lookUp(props);
   if (answer.kind === 'expired') {
@@ -61,23 +67,23 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     };
   }
 
-  if (answer.kind === 'listing') {
-    const { listing, site } = answer.found;
-    return {
-      title:
-        listing.page > 1
-          ? `${listing.title}, page ${listing.page} — ${site.name}`
-          : `${listing.title} — ${site.name}`,
-    };
-  }
+  const request = await headers();
+  const origin = siteOrigin(
+    request.get('x-forwarded-proto'),
+    request.get('host') ?? '',
+    answer.found.canonicalHost,
+  );
+  if (answer.kind === 'listing') return listingMetadata(answer.found, origin);
 
   const { found, preview } = answer;
-  const title = found.page.seoTitle ?? `${found.page.title} — ${found.site.name}`;
-  return {
-    title: preview ? `Preview: ${title}` : title,
-    description: found.page.seoDescription ?? undefined,
-    robots: found.page.noIndex || preview ? { index: false, follow: false } : undefined,
-  };
+  if (preview) {
+    return {
+      title: `Preview: ${found.page.seoTitle ?? `${found.page.title} — ${found.site.name}`}`,
+      description: found.page.seoDescription ?? undefined,
+      robots: { index: false, follow: false },
+    };
+  }
+  return pageMetadata(found, parseBlocks(found.page.blocks), origin);
 }
 
 export default async function SitePage(props: Props) {
