@@ -41,9 +41,9 @@ const plexMono = IBM_Plex_Mono({
   display: 'swap',
 });
 
+/** Only for pages that set none of their own (not found, error); a site's pages name themselves. */
 export const metadata: Metadata = {
-  title: 'CMS — tenant site renderer',
-  description: 'Server-rendered public sites for the multi-tenant CMS.',
+  title: 'CMS',
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {

@@ -7,11 +7,11 @@ import type { SiteTheme } from '@/theme/theme';
  * branding vary; the layout is fixed.
  */
 export type SiteSettings = {
-  slug: string;
   /** Wordmark text. A logo image replaces this once media exists. */
   name: string;
+  /** Short line beside the wordmark. Empty until sites can set one. */
   tagline: string;
-  /** Host this tenant answers on in production. Shown here for orientation. */
+  /** The site's main web address. */
   host: string;
   nav: { label: string; href: string }[];
   footer: {
@@ -27,7 +27,8 @@ export type SitePage = {
   blocks: Block[];
 };
 
-export type SiteFixture = {
+/** Everything one page of one site is drawn from. */
+export type SiteView = {
   settings: SiteSettings;
   page: SitePage;
 };

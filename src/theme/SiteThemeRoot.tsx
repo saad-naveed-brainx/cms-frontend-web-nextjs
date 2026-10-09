@@ -9,8 +9,8 @@ type Props = {
 
 /**
  * Scopes one tenant's theme to a subtree. Nesting two of these renders two
- * brands on one page, which is how the theme contract stays honest — see the
- * comparison view on `/`.
+ * brands on one page, so the theme contract can be checked by laying one
+ * theme over another site's content.
  */
 export function SiteThemeRoot({ theme, children, className = '' }: Props) {
   const texture = theme.texture === 'none' ? '' : `site-texture-${theme.texture}`;

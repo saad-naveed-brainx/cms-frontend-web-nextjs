@@ -63,6 +63,22 @@ const DENSITIES: Record<DensityName, { sectionY: string; gap: string; measure: s
   tight: { sectionY: '4.5rem', gap: '1.5rem', measure: '30rem' },
 };
 
+/** The names a stored theme may use for each choice, read from the tables above so they cannot drift apart. */
+export const TYPE_SET_NAMES = Object.keys(TYPE_SETS) as TypeSetName[];
+export const SHAPE_NAMES = Object.keys(SHAPES) as ShapeName[];
+export const DENSITY_NAMES = Object.keys(DENSITIES) as DensityName[];
+export const TEXTURE_NAMES: TextureName[] = ['none', 'grain', 'grid'];
+export const PALETTE_KEYS: (keyof Palette)[] = [
+  'paper',
+  'surface',
+  'ink',
+  'muted',
+  'line',
+  'brand',
+  'onBrand',
+  'accent',
+];
+
 /**
  * Flattens a theme into the CSS custom properties every block reads.
  * Blocks reference `--site-*` and nothing else, so a block can never carry a

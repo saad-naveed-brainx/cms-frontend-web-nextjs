@@ -10,7 +10,8 @@
     "typecheck": "next typegen && tsc --noEmit",
     "start:test": "next build && next start --port ${PORT:-3000}",
     "test:e2e": "playwright test --project=e2e",
-    "test:visual": "playwright test --project=visual",
+    "test:flow": "FLOW=1 playwright test --project=flow",
+    "test:visual": "FLOW=1 playwright test --project=visual",
     "tokens": "sh scripts/check-tokens.sh"
   },
   "dependencies": {

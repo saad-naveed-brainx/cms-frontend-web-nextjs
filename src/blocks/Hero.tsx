@@ -21,7 +21,7 @@ export function Hero({ block }: { block: HeroBlock }) {
 
         {image ? (
           <figure className="site-rise site-rise-delay overflow-hidden rounded-[var(--site-radius-lg)] border border-[var(--site-line)]">
-            {/* eslint-disable-next-line @next/next/no-img-element -- fixture SVGs; next/image lands with the media library */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- plain <img> until next/image lands with the media library */}
             <img src={image.src} alt={image.alt} className="block h-full w-full object-cover" />
           </figure>
         ) : null}

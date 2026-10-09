@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
- * Shell tokens: the chrome around a tenant site (the dev comparison view).
+ * Shell tokens: the pages that belong to no tenant (not found, error).
  * Deliberately neutral so it never reads as part of a tenant's brand.
  * Tenant colours arrive at runtime as --site-* on a SiteThemeRoot subtree.
  */
