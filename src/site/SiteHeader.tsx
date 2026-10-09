@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import type { SiteSettings } from './types';
 
 export function SiteHeader({ settings }: { settings: SiteSettings }) {
@@ -6,12 +5,15 @@ export function SiteHeader({ settings }: { settings: SiteSettings }) {
     <header className="border-b border-[var(--site-line)] px-6 sm:px-10">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-baseline justify-between gap-4 py-5">
         <div className="flex items-baseline gap-3">
-          <Link
+          {/* A plain link, as the menu's are, so this header has no Next.js import and the admin's
+              Appearance preview can draw it from an exact copy (D-030). */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- see above: a full load of the home page is fine */}
+          <a
             href="/"
             className="font-[family-name:var(--site-font-display)] text-lg font-semibold tracking-[-0.01em] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--site-accent)]"
           >
             {settings.name}
-          </Link>
+          </a>
           {settings.tagline ? (
             <span className="font-[family-name:var(--site-font-utility)] text-[0.6875rem] uppercase tracking-[0.16em] text-[var(--site-muted)]">
               {settings.tagline}
