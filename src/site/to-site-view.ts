@@ -1,12 +1,13 @@
 import { parseBlocks } from '@/blocks/parse-blocks';
+import { isRecord, isText } from '@/lib/guards';
 import type { PublicListing, PublicSite } from '@/lib/public-api';
 import { resolveTheme } from './resolve-theme';
 import type { SiteView } from './types';
 
 /**
  * What the API says about one page of one site, as the chrome draws it. The navigation the API
- * sends is shown in the header and again in the footer. The site's `settings` (tagline, footer
- * note) are not read yet: nothing can set them until site settings have a screen.
+ * sends is shown in the header and again in the footer. The header's tagline and the footer's note
+ * come from the site's settings (the admin's Appearance screen, GOV-04); anything not text is none.
  */
 export function toSiteView(data: PublicSite): SiteView {
   return frameView(data, {
@@ -33,15 +34,17 @@ function frameView(
     label: title,
     href: path,
   }));
+  const settings = isRecord(data.site.settings) ? data.site.settings : {};
+  const text = (value: unknown) => (isText(value) ? value.trim() : '');
 
   return {
     settings: {
       name: data.site.name,
-      tagline: '',
+      tagline: text(settings.tagline),
       host: data.canonicalHost,
       nav,
       footer: {
-        note: '',
+        note: text(settings.footerNote),
         groups: nav.length > 0 ? [{ title: 'Pages', links: nav }] : [],
       },
       theme: resolveTheme(data.site.theme),
