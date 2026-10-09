@@ -17,6 +17,8 @@ export type PublicSite = {
     path: string;
     seoTitle: string | null;
     seoDescription: string | null;
+    /** The page's own choice of original address; `null` means its address on `canonicalHost`. */
+    canonicalUrl: string | null;
     noIndex: boolean;
     /** Not trusted: `parseBlocks` keeps only what the block components can draw. */
     blocks: unknown[];
@@ -82,6 +84,7 @@ function isPublicSite(value: unknown): value is PublicSite {
     isText(page.path) &&
     (page.seoTitle === null || isText(page.seoTitle)) &&
     (page.seoDescription === null || isText(page.seoDescription)) &&
+    (page.canonicalUrl === null || isText(page.canonicalUrl)) &&
     typeof page.noIndex === 'boolean' &&
     Array.isArray(page.blocks)
   );

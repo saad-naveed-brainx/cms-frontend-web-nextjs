@@ -58,6 +58,15 @@ whatever its status, under a `PreviewBar` (inside the theme, `SiteChrome`'s `ban
 the path is not used. A link the API refuses (401) is `PreviewExpired`; a good link at another site's address is
 `notFound()`. Never cached: a preview always shows the latest save.
 
+**Search engines and share cards** (SEO-01, `src/site/seo.ts`, `../docs/DECISIONS.md` D-033): `generateMetadata` writes the
+title (`seoTitle`, else "Title — Site"), the description, the canonical link (the page's `canonicalUrl`, else its address on
+the site's main host, with the visitor's scheme from `x-forwarded-proto` and the visit's port; `/home` is `/`), Open Graph and
+X tags, and the share picture: the page's first hero or image-and-text picture, until the media library. A hidden page
+(`noIndex`) is `noindex, follow` with no canonical link; a blog page names each of its pages (`/blog?page=2`); a preview is
+`noindex, nofollow` with no canonical link or share card. **The tags are in `<head>` as sent only because the page waits for
+the same answer:** a `loading.tsx` or a Suspense boundary around the page lets Next.js stream them into `<body>`, which
+`UC-SEO-04` catches. Production's nginx must pass `X-Forwarded-Proto`, or canonical links say `http://`.
+
 ## Gotchas
 
 - **Visit a site at `<name>.localhost:3000`.** Create the site in the admin with the web address
