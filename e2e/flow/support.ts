@@ -72,6 +72,12 @@ export async function realApi(request: APIRequestContext) {
         const response = await request.post(`${flowApiUrl}/content/${id}/unpublish`, { headers });
         expect(response.status(), 'unpublishing').toBe(200);
       },
+      /** A preview link for a page, as the admin's Preview button asks for one. */
+      async previewLink(id: string) {
+        const response = await request.post(`${flowApiUrl}/content/${id}/preview`, { headers });
+        expect(response.status(), 'asking for a preview link').toBe(200);
+        return ((await response.json()) as { token: string }).token;
+      },
       /** A page made and published in one go. */
       async publishPage(data: { slug: string; title: string; blocks?: object[]; type?: string }) {
         const page = await this.createPage(data);

@@ -37,6 +37,12 @@ that cannot answer throws, which is `error.tsx` (a 500). Nothing is cached yet: 
 it is drawn fresh every visit, and there is no cache key to get wrong (invariant 4 starts to matter the
 day one is added). `NEXT_PUBLIC_API_URL` is where the server finds the API.
 
+**Preview links** (`../docs/DECISIONS.md` D-029): with `?preview=<token>` on any path, the route asks
+`GET /public/preview?host=&token=` instead (`getPreview`) and draws the page the link names, as last saved and
+whatever its status, under a `PreviewBar` (inside the theme, `SiteChrome`'s `banner`), with `noindex, nofollow`;
+the path is not used. A link the API refuses (401) is `PreviewExpired`; a good link at another site's address is
+`notFound()`. Never cached: a preview always shows the latest save.
+
 ## Gotchas
 
 - **Visit a site at `<name>.localhost:3000`.** Create the site in the admin with the web address

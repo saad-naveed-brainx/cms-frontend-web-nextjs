@@ -69,3 +69,33 @@ export const getPublicSite = cache(async (host: string, path: string): Promise<P
   if (!isPublicSite(body)) throw new Error('The API answered with something the site cannot draw');
   return body;
 });
+
+/** A page opened through a preview link: as last saved, whatever its status. */
+export type PublicPreview = PublicSite & { preview: { status: string } };
+
+/**
+ * What a preview link opens to: the page, `expired` when the API refuses the link itself (out of
+ * date, tampered with, or not a link), or `null` when there is nothing to show (another site's
+ * address, a page since trashed). Never cached: a preview must show the latest save.
+ */
+export type PreviewAnswer = { kind: 'page'; found: PublicPreview } | { kind: 'expired' } | null;
+
+export const getPreview = cache(async (host: string, token: string): Promise<PreviewAnswer> => {
+  const query = new URLSearchParams({ host, token });
+  const response = await fetch(`${apiUrl()}/public/preview?${query}`, {
+    cache: 'no-store',
+    headers: { accept: 'application/json' },
+    signal: AbortSignal.timeout(8_000),
+  });
+
+  if (response.status === 401) return { kind: 'expired' };
+  if (response.status === 404 || response.status === 400) return null;
+  if (!response.ok) throw new Error(`The API answered ${response.status}`);
+
+  const body: unknown = await response.json();
+  const preview = isRecord(body) ? body.preview : undefined;
+  if (!isPublicSite(body) || !isRecord(preview) || !isText(preview.status)) {
+    throw new Error('The API answered with something the site cannot draw');
+  }
+  return { kind: 'page', found: { ...body, preview: { status: preview.status } } };
+});
