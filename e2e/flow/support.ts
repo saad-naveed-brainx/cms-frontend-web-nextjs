@@ -116,8 +116,26 @@ export async function realApi(request: APIRequestContext) {
         const response = await request.patch(`${flowApiUrl}/appearance`, { headers, data });
         expect(response.status(), 'saving the appearance').toBe(200);
       },
-      /** A page made and published in one go. */
+      /** The site's front page: the published Home page at `/home` every new site starts with (D-037). */
+      async frontPage() {
+        const response = await request.get(`${flowApiUrl}/content?path=%2Fhome`, { headers });
+        const list = (await response.json()) as { items: { id: string; status: string }[] };
+        expect(list.items, 'one page at /home').toHaveLength(1);
+        return list.items[0];
+      },
+      /**
+       * A page made and published in one go. The Home page is already there and published, so `home`
+       * fills it in (title, blocks, search fields) instead.
+       */
       async publishPage(data: PageData) {
+        if (data.slug === 'home') {
+          const { title, blocks, seoTitle, seoDescription, canonicalUrl, noIndex } = data;
+          const changes = { title, blocks, seoTitle, seoDescription, canonicalUrl, noIndex };
+          const home = await this.frontPage();
+          const response = await request.patch(`${flowApiUrl}/content/${home.id}`, { headers, data: changes });
+          expect(response.status(), 'filling in the Home page').toBe(200);
+          return { id: home.id };
+        }
         const page = await this.createPage(data);
         await this.publish(page.id);
         return page;
@@ -127,7 +145,7 @@ export async function realApi(request: APIRequestContext) {
 
   return {
     /**
-     * A new site in the owner's organisation, with no pages, on one address or several (the first is
+     * A new site in the owner's organisation, with only its Home page, on one address or several (the first is
      * its main address, which `host` names), with the theme given (through the real API) or none.
      */
     async createSite(name: string, hosts: string | string[], theme?: object) {

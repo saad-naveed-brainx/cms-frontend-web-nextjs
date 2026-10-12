@@ -93,6 +93,36 @@ test('[UC-RS-17] a draft, a path with no page, another site’s page and an addr
   expect(found?.status()).toBe(200);
 });
 
+test('[UC-FP-08] a new site’s address shows its Home page at once; with it unpublished, / and /home say "Page not found" without a link back to themselves', async ({
+  page,
+  request,
+}) => {
+  const api = await realApi(request);
+  const token = unique();
+  const name = `Front Room ${token}`;
+  const site = await api.createSite(name, `front-${token}.localhost`);
+
+  // Born with its front page (D-037): the site's name in a hero, under its own name in the header.
+  const response = await page.goto(siteUrl(site.host, '/'));
+  expect(response?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1, name })).toBeVisible();
+  await expect(page.getByRole('banner')).toContainText(name);
+
+  const home = await site.frontPage();
+  await site.unpublish(home.id);
+  const backHome = page.getByRole('link', { name: 'Go to the home page' });
+  for (const path of ['/', '/home']) {
+    const missing = await page.goto(siteUrl(site.host, path));
+    expect(missing?.status(), path).toBe(404);
+    await expect(notFoundPage(page), path).toBeVisible();
+    await expect(backHome, path).toHaveCount(0);
+  }
+  // Anywhere else, the way back is still offered.
+  await page.goto(siteUrl(site.host, '/nothing-here'));
+  await expect(notFoundPage(page)).toBeVisible();
+  await expect(backHome).toHaveAttribute('href', '/');
+});
+
 test('[UC-RS-17] a block the site cannot draw is left out, and the rest of the page still shows', async ({
   page,
   request,
@@ -185,7 +215,7 @@ test('[UC-RS-20] the old demo addresses show a not-found page, on a real site an
   }
 });
 
-test('[UC-RS-24] the finish line: sign in, create a site, create a home page with a hero, publish it, and the website shows its headline and the site name', async ({
+test('[UC-RS-24] the finish line: sign in, create a site (its Home page shows at once), give the Home page a hero, and the website shows its headline and the site name', async ({
   page,
   request,
 }) => {
@@ -194,7 +224,7 @@ test('[UC-RS-24] the finish line: sign in, create a site, create a home page wit
   const name = `Finish Cafe ${token}`;
   const headline = `Welcome to ${name}`;
 
-  // The real API, in the order the admin uses it: sign in, create the site, create its home page.
+  // The real API, in the order the admin uses it: sign in, create the site, fill in its Home page.
   const login = await request.post(`${flowApiUrl}/auth/login`, {
     data: { email: owner.email, password: owner.password },
   });
@@ -205,18 +235,17 @@ test('[UC-RS-24] the finish line: sign in, create a site, create a home page wit
   expect(created.status()).toBe(201);
   const siteHeaders = { ...signedIn, 'X-Site-Id': ((await created.json()) as { site: { id: string } }).site.id };
 
-  const drafted = await request.post(`${flowApiUrl}/content`, {
+  // Born with its front page (D-037): the site's name in a hero, at once.
+  expect((await page.goto(siteUrl(host)))?.status()).toBe(200);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(name);
+
+  const found = await request.get(`${flowApiUrl}/content?path=%2Fhome`, { headers: siteHeaders });
+  const [home] = ((await found.json()) as { items: { id: string }[] }).items;
+  const saved = await request.patch(`${flowApiUrl}/content/${home.id}`, {
     headers: siteHeaders,
-    data: { type: 'page', title: 'Home', slug: 'home', blocks: [{ type: 'hero', headline }] },
+    data: { blocks: [{ type: 'hero', headline }] },
   });
-  expect(drafted.status()).toBe(201);
-  const home = (await drafted.json()) as { id: string };
-
-  // Until it is published, the address shows nothing.
-  expect((await page.goto(siteUrl(host)))?.status()).toBe(404);
-
-  const published = await request.post(`${flowApiUrl}/content/${home.id}/publish`, { headers: siteHeaders });
-  expect(published.status()).toBe(200);
+  expect(saved.status()).toBe(200);
 
   // Then the website draws it: the headline, the site's name, a title that names both.
   const response = await page.goto(siteUrl(host));

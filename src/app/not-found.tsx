@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import { HomeLink } from './home-link';
 
 /**
  * Shown for an address with no site, a path with no published page, a draft and an unpublished
  * page alike: the visitor is never told which. Deliberately neutral, with the shell colours rather
- * than a tenant's, because for an unknown address there is no tenant to borrow a theme from.
+ * than a tenant's, because for an unknown address there is no tenant to borrow a theme from. On the
+ * front page itself it offers no way "home": that is the page that is missing.
  */
 export default function NotFound() {
   return (
@@ -13,11 +14,7 @@ export default function NotFound() {
       <p className="text-[var(--shell-muted)]">
         There is nothing to show at this address. The page may have moved, or it may not be published yet.
       </p>
-      <p>
-        <Link href="/" className="underline underline-offset-4">
-          Go to the home page
-        </Link>
-      </p>
+      <HomeLink />
     </main>
   );
 }
