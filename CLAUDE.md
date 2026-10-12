@@ -28,9 +28,10 @@ Next.js 16 App Router. Renders **all public tenant sites**: one optional catch-a
 6. An unknown block type is skipped, not thrown on — a page saved with a block a later deploy
    removed must still render the rest of itself. `src/blocks/parse-blocks.ts` reads every stored block
    field by field before anything is drawn: a block it cannot read, or a link or image address that is
-   not safe (`javascript:`), is left out and the rest of the page shows. `richText` is **not drawn at
-   all** until the API cleans HTML on save (BLK-05, `../docs/DECISIONS.md` D-021): nothing sanitises
-   stored HTML yet, so it cannot be trusted as markup.
+   not safe (`javascript:`), is left out and the rest of the page shows. A text block (`richText`)
+   is drawn as stored HTML (`dangerouslySetInnerHTML`): the API cleaned it on save against an allow-list
+   (BLK-05, `../docs/DECISIONS.md` D-041), so nothing else may write one. Its lists, headings and quotes are
+   styled in `src/theme/site.css` (`.site-richtext`).
 
 ## How a page is drawn
 

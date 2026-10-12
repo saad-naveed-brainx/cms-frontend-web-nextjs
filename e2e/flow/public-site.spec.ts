@@ -134,12 +134,12 @@ test('[UC-RS-17] a block the site cannot draw is left out, and the rest of the p
     { type: 'hero', headline: 'Still here' },
     { type: 'hologram', note: 'a block type from the future' },
     { type: 'hero' }, // no headline: cannot be drawn
-    // From before the API refused rich text, so it is written to the database: stored HTML is not safe to draw.
-    { type: 'richText', html: '<p>Not drawn until stored HTML is cleaned on save</p><img src="x" onerror="alert(1)">' },
+    { type: 'richText', heading: 'No text' }, // no html: cannot be drawn
     { type: 'cta', heading: 'Unsafe link', action: { label: 'Click', href: 'javascript:alert(1)' } },
     { type: 'cta', heading: 'Real link', action: { label: 'Contact us', href: '/contact' } },
   ];
-  const home = await made.publishPage({ slug: 'home', title: 'Home', blocks: blocks.filter((block) => block.type !== 'richText') });
+  const home = await made.publishPage({ slug: 'home', title: 'Home', blocks: [blocks[0]] });
+  // Written straight to the database: the API refuses a text block without html.
   writeBlocks(home.id, blocks);
   page.on('dialog', () => {
     throw new Error('a stored script ran');
@@ -151,8 +151,8 @@ test('[UC-RS-17] a block the site cannot draw is left out, and the rest of the p
   await expect(page.getByRole('heading', { name: 'Real link' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', '/contact');
   await expect(page.getByText('Unsafe link')).toHaveCount(0);
-  await expect(page.getByText('Not drawn until stored HTML')).toHaveCount(0);
-  await expect(page.locator('a[href^="javascript"], img[src="x"]')).toHaveCount(0);
+  await expect(page.getByText('No text')).toHaveCount(0);
+  await expect(page.locator('a[href^="javascript"]')).toHaveCount(0);
   // A site with no theme of its own shows the default one.
   await expect(themeRoot(page)).toHaveCSS('background-color', 'rgb(255, 255, 255)');
 });
