@@ -39,7 +39,10 @@ The route reads the `Host` header and the path, asks the API's public route (`GE
 `SiteView`, `src/site/resolve-theme.ts` lays the site's stored theme over `DEFAULT_THEME` (a new site's
 theme is `{}`, so it shows the default; every missing or invalid choice falls back), `SiteChrome` draws it.
 A site, a page, a draft and an unpublished page that is not there are all `notFound()` (a real 404); an API
-that cannot answer throws, which is `error.tsx` (a 500). `NEXT_PUBLIC_API_URL` is where the server finds the API.
+that cannot answer throws, which is `error.tsx` (a 500). The not-found page offers "Go to the home page" except at `/`
+and `/home` (`src/app/home-link.tsx`, reading the address with `usePathname`, since a not-found page gets no props),
+where it would lead back to itself. Every new site starts with a published Home page (D-037), so the flow helpers'
+`publishPage({ slug: 'home' })` fills that page in rather than creating one. `NEXT_PUBLIC_API_URL` is where the server finds the API.
 
 **Caching** (CNT-08, `../docs/DECISIONS.md` D-032): the page is drawn on every visit (it reads the host), but the
 API's answer is kept for up to five minutes, keyed by the whole request address and tagged `site:<host>`; only
