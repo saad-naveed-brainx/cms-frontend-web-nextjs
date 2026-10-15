@@ -22,8 +22,13 @@ npm run dev                 # http://localhost:3000
 
 ```
 NEXT_PUBLIC_API_URL="http://localhost:4001"
-DEFAULT_TENANT_HOST="localhost:3000"   # fallback tenant for local dev
 ```
+
+## Production
+
+Deployed with the API and the admin by the runbook in the api repo (`deploy/README.md`). This repo's
+part is in `deploy/`: the live `.env` (`production.env.example`), the nginx server blocks for every
+client site (`nginx.conf`) and the pm2 process (`pm2.config.cjs`).
 
 ## Scripts
 
