@@ -86,6 +86,15 @@ export async function realApi(request: APIRequestContext) {
     return {
       siteId,
       host,
+      /** Makes a content type through the real route the admin's Content types screen uses (D-043). */
+      async createType(name: string, urlPrefix: string) {
+        const response = await request.post(`${flowApiUrl}/content-types`, {
+          headers,
+          data: { name, urlPrefix },
+        });
+        expect(response.status(), `creating the type ${name}`).toBe(201);
+        return (await response.json()) as { slug: string };
+      },
       async createPage(data: PageData) {
         const response = await request.post(`${flowApiUrl}/content`, {
           headers,
