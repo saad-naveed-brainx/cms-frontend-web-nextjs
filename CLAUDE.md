@@ -57,8 +57,9 @@ tagged answer is dropped at once (`revalidateTag(tag, { expire: 0 })`). **Cachin
 `kind: 'listing'` and the route draws `PostList` inside `SiteChrome` (its `children` replace the blocks): the type's
 published items newest first, ten at a time, `?page=2` for older ones. The menu gains `Posts` once one is published.
 
-**Appearance** (GOV-04, `../docs/DECISIONS.md` D-036): the header's tagline and the footer's note come from the site's
-`settings` (`tagline`, `footerNote`), saved with its name and theme on the admin's Appearance screen. The ready-made palettes
+**Appearance** (GOV-04, `../docs/DECISIONS.md` D-036): the header's tagline and logo and the footer's note come from the site's
+`settings` (`tagline`, `logoUrl`, `footerNote`; the logo is a media-library picture on the API's address, D-042, drawn before
+the name with `alt=""` and dropped unless it passes `SAFE_IMAGE`), saved with its name and theme on the admin's Appearance screen. The ready-made palettes
 are `src/site/palettes.ts` (the first is the default theme's), each passing the contrast checks in `e2e/palettes.spec.ts`
 (text pairs and the accent at least 4.5:1, `src/site/contrast.ts`); the admin copies both for its screen. They live in
 `src/site`, not `src/theme`, because blocks and the theme may hold no colour (invariant 3).

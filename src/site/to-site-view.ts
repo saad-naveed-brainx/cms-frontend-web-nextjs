@@ -1,4 +1,4 @@
-import { parseBlocks } from '@/blocks/parse-blocks';
+import { parseBlocks, SAFE_IMAGE } from '@/blocks/parse-blocks';
 import { isRecord, isText } from '@/lib/guards';
 import type { PublicListing, PublicSite } from '@/lib/public-api';
 import { resolveTheme } from './resolve-theme';
@@ -6,8 +6,9 @@ import type { SiteView } from './types';
 
 /**
  * What the API says about one page of one site, as the chrome draws it. The navigation the API
- * sends is shown in the header and again in the footer. The header's tagline and the footer's note
- * come from the site's settings (the admin's Appearance screen, GOV-04); anything not text is none.
+ * sends is shown in the header and again in the footer. The header's tagline and logo and the footer's
+ * note come from the site's settings (the admin's Appearance screen, GOV-04, MED-03); anything not text
+ * is none, and a logo address that is not one an image may load from is no logo.
  */
 export function toSiteView(data: PublicSite): SiteView {
   return frameView(data, {
@@ -36,10 +37,12 @@ function frameView(
   }));
   const settings = isRecord(data.site.settings) ? data.site.settings : {};
   const text = (value: unknown) => (isText(value) ? value.trim() : '');
+  const logo = text(settings.logoUrl);
 
   return {
     settings: {
       name: data.site.name,
+      ...(SAFE_IMAGE.test(logo) ? { logo } : {}),
       tagline: text(settings.tagline),
       host: data.canonicalHost,
       nav,
