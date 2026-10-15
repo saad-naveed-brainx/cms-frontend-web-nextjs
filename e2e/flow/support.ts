@@ -22,8 +22,8 @@ export function sql(statement: string) {
 const literal = (value: object) => `'${JSON.stringify(value).replaceAll("'", "''")}'::jsonb`;
 
 /**
- * Replaces a page's blocks in the database. The API refuses a rich-text block (its HTML is not safe
- * to store until it is cleaned on save), so this is how one from before that rule is made.
+ * Replaces a page's blocks in the database, past the API's checks: how a block the API would refuse
+ * (a text block with no html) or a stored oddity is made.
  */
 export function writeBlocks(pageId: string, blocks: object[]) {
   sql(`UPDATE content SET blocks = ${literal(blocks)} WHERE id = '${pageId}'`);
@@ -112,9 +112,24 @@ export async function realApi(request: APIRequestContext) {
        * The site's name, header tagline, footer note or whole theme, saved through the real route the
        * admin's Appearance screen uses (GOV-04), which also tells the website to forget the site.
        */
-      async setAppearance(data: { name?: string; tagline?: string; footerNote?: string; theme?: object }) {
+      async setAppearance(data: {
+        name?: string;
+        tagline?: string;
+        footerNote?: string;
+        logoUrl?: string;
+        theme?: object;
+      }) {
         const response = await request.patch(`${flowApiUrl}/appearance`, { headers, data });
         expect(response.status(), 'saving the appearance').toBe(200);
+      },
+      /** Adds a picture to the site's media library through the real upload route (MED-01); its `url`. */
+      async uploadPicture(name: string, bytes: Buffer): Promise<string> {
+        const response = await request.post(`${flowApiUrl}/media`, {
+          headers,
+          multipart: { file: { name, mimeType: 'image/png', buffer: bytes } },
+        });
+        expect(response.status(), 'uploading a picture').toBe(201);
+        return ((await response.json()) as { url: string }).url;
       },
       /** The site's front page: the published Home page at `/home` every new site starts with (D-037). */
       async frontPage() {

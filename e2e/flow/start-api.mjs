@@ -3,6 +3,7 @@
 // /health. Everything it needs arrives as environment variables from playwright.config.ts.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 const { FLOW_DATABASE, FLOW_API_PORT, FLOW_OWNER, FLOW_TENANT } = process.env;
@@ -35,6 +36,8 @@ const env = {
   CORS_ORIGINS: 'http://127.0.0.1:1',
   // Only for this throwaway database: long enough for the production check, worth nothing anywhere else.
   JWT_SECRET: 'flow-tests-only-secret-not-used-anywhere-else-0123456789',
+  // Uploaded pictures go to a throwaway folder of this run's own, never the api repo's uploads/.
+  MEDIA_DIR: path.join(tmpdir(), `cms-webflow-media-${FLOW_DATABASE}`),
 };
 
 // `db:migrate` builds first, so dist/ is fresh for the seed command and the server below.
