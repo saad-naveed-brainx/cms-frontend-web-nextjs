@@ -46,3 +46,6 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# the commit hook's working file: it deletes it after every commit and keeps the result in .code-reviews/records/
+/.code-reviews/brainx-review.md
