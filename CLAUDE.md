@@ -45,6 +45,13 @@ and `/home` (`src/app/home-link.tsx`, reading the address with `usePathname`, si
 where it would lead back to itself. Every new site starts with a published Home page (D-037), so the flow helpers'
 `publishPage({ slug: 'home' })` fills that page in rather than creating one. `NEXT_PUBLIC_API_URL` is where the server finds the API.
 
+**A suspended site** (platform-admin T4, `../docs/DECISIONS.md` D-062): when the platform has suspended a site's organization the API answers 503
+with `{ code: 'site_suspended' }`; `getPublicSite` turns that into `{ kind: 'suspended' }` and the route draws `SiteUnavailable` ("This site is
+unavailable", neutral shell colours, `noindex`). **The page itself is sent with status 200**, because a Next.js page cannot set a status without
+middleware (a known gap); any other 503 is still an error page. Only 200 answers are cached, so reactivating shows the site again as soon as the
+API's address memory and the website's cache are cleared (the API does both). `e2e/flow/platform-suspended.spec.ts` writes the suspension to the
+database before the first visit.
+
 **Caching** (CNT-08, `../docs/DECISIONS.md` D-032): the page is drawn on every visit (it reads the host), but the
 API's answer is kept for up to five minutes, keyed by the whole request address and tagged `site:<host>`; only
 200 answers are kept, so a "not found" is always asked afresh. The API POSTs a site's addresses to
