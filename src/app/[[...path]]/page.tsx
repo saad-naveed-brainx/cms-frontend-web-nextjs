@@ -5,6 +5,7 @@ import { parseBlocks } from '@/blocks/parse-blocks';
 import { getPreview, getPublicSite } from '@/lib/public-api';
 import type { PublicListing, PublicSite } from '@/lib/public-api';
 import { PostList } from '@/site/PostList';
+import { SiteUnavailable } from '@/site/SiteUnavailable';
 import { PreviewBar } from '@/site/PreviewBar';
 import { PreviewExpired } from '@/site/PreviewExpired';
 import { listingMetadata, pageMetadata, siteOrigin } from '@/site/seo';
@@ -16,7 +17,8 @@ type Props = PageProps<'/[[...path]]'>;
 type Found =
   | { kind: 'page'; found: PublicSite; preview: { status: string } | null }
   | { kind: 'listing'; found: PublicListing }
-  | { kind: 'expired' };
+  | { kind: 'expired' }
+  | { kind: 'suspended' };
 
 /**
  * Every page of every tenant site. The site comes from the address the visitor used (the `Host`
@@ -50,6 +52,7 @@ async function lookUp({ params, searchParams }: Props): Promise<Found> {
   const { path = [] } = await params;
   const found = await getPublicSite(host, `/${path.join('/')}`, first(query.page));
   if (!found) notFound();
+  if (found.kind === 'suspended') return found;
   if (found.kind === 'listing') return { kind: 'listing', found };
   return { kind: 'page', found, preview: null };
 }
@@ -60,6 +63,9 @@ async function lookUp({ params, searchParams }: Props): Promise<Found> {
  */
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const answer = await lookUp(props);
+  if (answer.kind === 'suspended') {
+    return { title: 'This site is unavailable', robots: { index: false, follow: false } };
+  }
   if (answer.kind === 'expired') {
     return {
       title: 'Preview link expired',
@@ -88,6 +94,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 
 export default async function SitePage(props: Props) {
   const answer = await lookUp(props);
+  if (answer.kind === 'suspended') return <SiteUnavailable />;
   if (answer.kind === 'expired') return <PreviewExpired />;
   if (answer.kind === 'listing') {
     return (

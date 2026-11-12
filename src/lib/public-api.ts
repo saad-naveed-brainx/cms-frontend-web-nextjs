@@ -42,6 +42,13 @@ export type PublicListing = Omit<PublicSite, 'kind' | 'page'> & {
   };
 };
 
+/**
+ * The platform has suspended the site's organization (platform-admin T4, D-062): the API answers 503
+ * with the code `site_suspended`, and the visitor is shown that the site is unavailable. Nothing of
+ * the site is drawn, since there is nothing to draw it from.
+ */
+export type PublicSuspended = { kind: 'suspended' };
+
 /** What every answer carries: the site, its addresses and its menu. */
 function hasSiteFrame(value: Record<string, unknown>): boolean {
   return (
@@ -90,6 +97,16 @@ function isPublicSite(value: unknown): value is PublicSite {
   );
 }
 
+/** Whether a 503 is the API saying the organization is suspended (and not the API being unwell). */
+async function isSuspendedAnswer(response: Response): Promise<boolean> {
+  try {
+    const body: unknown = await response.json();
+    return isRecord(body) && body.code === 'site_suspended';
+  } catch {
+    return false;
+  }
+}
+
 function apiUrl(): string {
   const url = process.env.NEXT_PUBLIC_API_URL;
   if (!url) throw new Error('NEXT_PUBLIC_API_URL is not set: the site cannot reach the API');
@@ -108,7 +125,11 @@ function apiUrl(): string {
  * the page and its metadata share one call.
  */
 export const getPublicSite = cache(
-  async (host: string, path: string, page?: string): Promise<PublicSite | PublicListing | null> => {
+  async (
+    host: string,
+    path: string,
+    page?: string,
+  ): Promise<PublicSite | PublicListing | PublicSuspended | null> => {
     const query = new URLSearchParams({ host, path });
     if (page !== undefined) query.set('page', page);
     const response = await fetch(`${apiUrl()}/public/site?${query}`, {
@@ -118,6 +139,7 @@ export const getPublicSite = cache(
     });
 
     if (response.status === 404 || response.status === 400) return null;
+    if (response.status === 503 && (await isSuspendedAnswer(response))) return { kind: 'suspended' };
     if (!response.ok) throw new Error(`The API answered ${response.status}`);
 
     const body: unknown = await response.json();
